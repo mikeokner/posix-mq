@@ -1,5 +1,5 @@
 { "name": "posix-mq",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "Michael Okner",
   "description": "A more flexible Node.js binding for using POSIX message queues",
   "main": "./lib/index",
