@@ -1,3 +1,12 @@
+/* Forked from the `pmq' project by Brian White (https://github.com/mscdex/pmq)
+ *
+ * Added additional features to allow for user-specified flags and pushing
+ * strings directly rather than requiring they be converted to a Buffer object.
+ *
+ * 2014-09 by Michael Okner (https://github.com/mikeokner)
+ */
+
+
 #include <node.h>
 #include <node_buffer.h>
 
@@ -24,6 +33,7 @@ static Persistent<Value> read_emit_argv[1];
 static Persistent<Value> write_emit_argv[1];
 static const mqd_t MQDES_INVALID = (mqd_t)-1;
 
+
 class PosixMQ : public ObjectWrap {
   public:
     mqd_t mqdes;
@@ -49,6 +59,7 @@ class PosixMQ : public ObjectWrap {
     }
 
     int close() {
+      /* Cleanup and call mq_close() */
       int r = 0;
       if (mqdes != MQDES_INVALID) {
         uv_poll_stop(mqpollhandle);
@@ -66,6 +77,7 @@ class PosixMQ : public ObjectWrap {
     }
 
     static Handle<Value> New(const Arguments& args) {
+      /* Create a new instance of this class */
       HandleScope scope;
 
       if (!args.IsConstructCall()) {
@@ -80,6 +92,7 @@ class PosixMQ : public ObjectWrap {
     }
 
     static Handle<Value> Open(const Arguments& args) {
+      /* Create/open a queue with mq_open() */
       HandleScope scope;
       PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
       bool doCreate = false;
@@ -99,6 +112,7 @@ class PosixMQ : public ObjectWrap {
       Local<Object> config = args[0]->ToObject();
       Local<Value> val;
 
+      /* Whether or not to create the queue when opening */
       if (!(val = config->Get(String::New("create")))->IsUndefined()) {
         if (!val->IsBoolean()) {
           return ThrowException(Exception::TypeError(
@@ -107,6 +121,7 @@ class PosixMQ : public ObjectWrap {
         doCreate = val->BooleanValue();
       }
 
+      /* Optional override for default O_RDWR | O_NONBLOCK flag */
       if (!(val = config->Get(String::New("flags")))->IsUndefined()) {
         if (val->IsUint32())
             flags = val->Uint32Value();
@@ -116,6 +131,7 @@ class PosixMQ : public ObjectWrap {
         }
       }
 
+      /* Required name of queue to open */
       val = config->Get(String::New("name"));
       if (!val->IsString()) {
         return ThrowException(Exception::TypeError(
@@ -125,7 +141,10 @@ class PosixMQ : public ObjectWrap {
       name = (const char*)(*namestr);
 
       val = config->Get(String::New("mode"));
+
+      /* If creating, get params to use for creation */
       if (doCreate) {
+        /* Mode specifies permissions */
         if (val->IsUint32())
           mode = (mode_t)val->Uint32Value();
         else if (val->IsString()) {
@@ -141,11 +160,13 @@ class PosixMQ : public ObjectWrap {
         if (val->IsBoolean() && val->BooleanValue() == true)
           flags |= O_EXCL;
 
+        /* Max number of messages allowed in queue */
         val = config->Get(String::New("maxmsgs"));
         if (val->IsUint32())
           obj->mqattrs.mq_maxmsg = val->Uint32Value();
         else
           obj->mqattrs.mq_maxmsg = 10;
+        /* Size of each message on the queue */
         val = config->Get(String::New("msgsize"));
         if (val->IsUint32())
           obj->mqattrs.mq_msgsize = val->Uint32Value();
@@ -153,14 +174,17 @@ class PosixMQ : public ObjectWrap {
           obj->mqattrs.mq_msgsize = 8192;
       }
 
+      /* Close existing queue if already open */
       if (obj->mqdes != MQDES_INVALID)
         obj->close();
 
+      /* Open mq reference */
       if (doCreate)
         obj->mqdes = mq_open(name, flags, mode, &(obj->mqattrs));
       else
         obj->mqdes = mq_open(name, flags);
 
+      /* If opening failed, throw exception */
       if (obj->mqdes == MQDES_INVALID ||
           mq_getattr(obj->mqdes, &(obj->mqattrs)) == -1) {
         return ThrowException(Exception::Error(
@@ -175,15 +199,15 @@ class PosixMQ : public ObjectWrap {
                                                obj->handle_->Get(emit_symbol)));
       }
 
+      /* Set attrs for reference */
       obj->mqname = strdup(name);
-
       obj->canread = !(obj->mqattrs.mq_curmsgs > 0);
       obj->canwrite = !(obj->mqattrs.mq_curmsgs < obj->mqattrs.mq_maxmsg);
-
       if (!obj->mqpollhandle)
         obj->mqpollhandle = new uv_poll_t;
       obj->mqpollhandle->data = obj;
       obj->eventmask = UV_READABLE | UV_WRITABLE;
+
       uv_poll_init(uv_default_loop(), obj->mqpollhandle, MQDES_TO_FD(obj->mqdes));
       uv_poll_start(obj->mqpollhandle, obj->eventmask, poll_cb);
 
@@ -270,6 +294,7 @@ class PosixMQ : public ObjectWrap {
     }
 
     static Handle<Value> Send(const Arguments& args) {
+      /* Push data onto the queue using mq_send() */
       HandleScope scope;
       PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
       uint32_t priority = 0;
@@ -292,10 +317,12 @@ class PosixMQ : public ObjectWrap {
       }
 
       if (Buffer::HasInstance(args[0])) {
+          /* Object passed in is a Buffer object */
           send_result = mq_send(obj->mqdes, Buffer::Data(args[0]->ToObject()),
                                 Buffer::Length(args[0]->ToObject()), priority);
       }
       else if (args[0]->IsString()) {
+          /* Object passed in is a javascript string */
           const char* message;
           String::AsciiValue msgstr(args[0]->ToString());
           message = (const char*)(*msgstr);
@@ -303,7 +330,8 @@ class PosixMQ : public ObjectWrap {
       }
       else {
         return ThrowException(Exception::TypeError(
-            String::New("First argument wasn't a Buffer or String!")));
+          /* Shouldn't ever actually get here since we checked above */
+          String::New("First argument wasn't a Buffer or String!")));
       }
 
       if (send_result == -1) {

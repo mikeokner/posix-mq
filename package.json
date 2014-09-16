@@ -1,10 +1,10 @@
-{ "name": "pmq",
-  "version": "0.1.3",
-  "author": "Brian White <mscdex@mscdex.net>",
-  "description": "A node.js binding for using POSIX message queues",
+{ "name": "posix-mq",
+  "version": "0.0.1",
+  "author": "Michael Okner",
+  "description": "A more flexible Node.js binding for using POSIX message queues",
   "main": "./lib/index",
-  "engines": { "node" : ">=0.8.0" },
-  "keywords": [ "mq", "messages", "queues", "linux", "freebsd", "mqueue" ],
-  "licenses": [ { "type": "MIT", "url": "http://github.com/mscdex/pmq/raw/master/LICENSE" } ],
-  "repository" : { "type": "git", "url": "http://github.com/mscdex/pmq.git" }
+  "engines": {"node" : ">=0.8.0"},
+  "keywords": ["posixmq", "posix", "mq", "queue", "message", "linux", "bsd", "mqueue"],
+  "licenses": [{"type": "MIT", "url": "http://github.com/mikeokner/posix-mq/raw/master/LICENSE"}],
+  "repository": {"type": "git", "url": "http://github.com/mikeokner/posix-mq.git"}
 }
