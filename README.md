@@ -1,6 +1,8 @@
 Description
 ===========
 
+[![Build Status](https://travis-ci.org/mikeokner/posix-mq.svg)](https://travis-ci.org/mikeokner/posix-mq)
+
 A [node.js](http://nodejs.org/) library for using POSIX message queues. Forked from mscdex/pmq to provide additional customization of flags passed to `mq_open()`.
 
 
