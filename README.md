@@ -1,7 +1,7 @@
 Description
 ===========
 
-A [node.js](http://nodejs.org/) library for using POSIX message queues.
+A [node.js](http://nodejs.org/) library for using POSIX message queues. Forked from mscdex/pmq to provide additional customization of flags passed to `mq_open()`.
 
 
 Requirements
@@ -103,7 +103,7 @@ Methods
 
     * msgsize - _integer_ - If creating a queue, this is the maximum size of each message (in bytes) in the queue. This value is subject to the system limits in place and defaults to 8192 bytes.
 
-    * flags - _integer_ - Default is `O_RDWR | O_NONBLOCK` (2050). If a different flags value is required, its integer value may be provided here.
+    * flags - _integer_ - Default is `O_RDWR | O_NONBLOCK` (2050). If a different set of flags is required, its integer value may be provided here. See the man page for `mq_open` for more information.
     
 * **close**() - _(void)_ - Disconnects from the queue.
 
