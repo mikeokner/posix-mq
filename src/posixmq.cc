@@ -1,7 +1,7 @@
 /* Forked from the `pmq' project by Brian White (https://github.com/mscdex/pmq)
  *
  * Added additional features to allow for user-specified flags and pushing
- * strings directly rather than requiring they be converted to a Buffer object.
+ * strings directly rather than requiring they be converted to a node::Buffer object.
  *
  * 2014-09 by Michael Okner (https://github.com/mikeokner)
  */
@@ -24,23 +24,20 @@
 #  define MQDES_TO_FD(mqdes) __mq_oshandle(mqdes)
 #endif
 
-using namespace node;
-using namespace v8;
-
-static Persistent<FunctionTemplate> constructor;
-static Persistent<String> emit_symbol;
-static Persistent<Value> read_emit_argv[1];
-static Persistent<Value> write_emit_argv[1];
+static v8::Persistent<v8::FunctionTemplate> constructor;
+static v8::Persistent<v8::String> emit_symbol;
+static v8::Persistent<v8::Value> read_emit_argv[1];
+static v8::Persistent<v8::Value> write_emit_argv[1];
 static const mqd_t MQDES_INVALID = (mqd_t)-1;
 
 
-class PosixMQ : public ObjectWrap {
+class PosixMQ : public node::ObjectWrap {
   public:
     mqd_t mqdes;
     struct mq_attr mqattrs;
     uv_poll_t* mqpollhandle;
     char* mqname;
-    Persistent<Function> Emit;
+    v8::Persistent<v8::Function> Emit;
     bool canread;
     bool canwrite;
     int eventmask;
@@ -76,13 +73,13 @@ class PosixMQ : public ObjectWrap {
       obj->mqpollhandle = NULL;
     }
 
-    static Handle<Value> New(const Arguments& args) {
+    static v8::Handle<v8::Value> New(const v8::Arguments& args) {
       /* Create a new instance of this class */
-      HandleScope scope;
+      v8::HandleScope scope;
 
       if (!args.IsConstructCall()) {
-        return ThrowException(Exception::TypeError(
-            String::New("Use `new` to create instances of this object.")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("Use `new` to create instances of this object.")));
       }
 
       PosixMQ* obj = new PosixMQ();
@@ -91,56 +88,56 @@ class PosixMQ : public ObjectWrap {
       return args.This();
     }
 
-    static Handle<Value> Open(const Arguments& args) {
+    static v8::Handle<v8::Value> Open(const v8::Arguments& args) {
       /* Create/open a queue with mq_open() */
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(args.This());
       bool doCreate = false;
       int flags = O_RDWR | O_NONBLOCK;
       mode_t mode;
       const char* name;
 
       if (args.Length() != 1) {
-        return ThrowException(Exception::TypeError(
-            String::New("Expecting 1 argument")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("Expecting 1 argument")));
       }
       if (!args[0]->IsObject()) {
-        return ThrowException(Exception::TypeError(
-            String::New("Argument must be an object")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("Argument must be an object")));
       }
 
-      Local<Object> config = args[0]->ToObject();
-      Local<Value> val;
+      v8::Local<v8::Object> config = args[0]->ToObject();
+      v8::Local<v8::Value> val;
 
       /* Whether or not to create the queue when opening */
-      if (!(val = config->Get(String::New("create")))->IsUndefined()) {
+      if (!(val = config->Get(v8::String::New("create")))->IsUndefined()) {
         if (!val->IsBoolean()) {
-          return ThrowException(Exception::TypeError(
-              String::New("'create' property must be a boolean")));
+          return v8::ThrowException(v8::Exception::TypeError(
+              v8::String::New("'create' property must be a boolean")));
         }
         doCreate = val->BooleanValue();
       }
 
       /* Optional override for default O_RDWR | O_NONBLOCK flag */
-      if (!(val = config->Get(String::New("flags")))->IsUndefined()) {
+      if (!(val = config->Get(v8::String::New("flags")))->IsUndefined()) {
         if (val->IsUint32())
             flags = val->Uint32Value();
         else {
-            return ThrowException(Exception::TypeError(
-                String::New("'flags' property must be an int")));
+            return v8::ThrowException(v8::Exception::TypeError(
+                v8::String::New("'flags' property must be an int")));
         }
       }
 
       /* Required name of queue to open */
-      val = config->Get(String::New("name"));
+      val = config->Get(v8::String::New("name"));
       if (!val->IsString()) {
-        return ThrowException(Exception::TypeError(
-            String::New("'name' property must be a string")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("'name' property must be a string")));
       }
-      String::AsciiValue namestr(val->ToString());
+      v8::String::AsciiValue namestr(val->ToString());
       name = (const char*)(*namestr);
 
-      val = config->Get(String::New("mode"));
+      val = config->Get(v8::String::New("mode"));
 
       /* If creating, get params to use for creation */
       if (doCreate) {
@@ -148,26 +145,26 @@ class PosixMQ : public ObjectWrap {
         if (val->IsUint32())
           mode = (mode_t)val->Uint32Value();
         else if (val->IsString()) {
-          String::AsciiValue modestr(val->ToString());
+          v8::String::AsciiValue modestr(val->ToString());
           mode = (mode_t)strtoul((const char*)(*modestr), NULL, 8);
         } else {
-          return ThrowException(Exception::TypeError(
-              String::New("'mode' property must be a string or integer")));
+          return v8::ThrowException(v8::Exception::TypeError(
+              v8::String::New("'mode' property must be a string or integer")));
         }
         flags |= O_CREAT;
 
-        val = config->Get(String::New("exclusive"));
+        val = config->Get(v8::String::New("exclusive"));
         if (val->IsBoolean() && val->BooleanValue() == true)
           flags |= O_EXCL;
 
         /* Max number of messages allowed in queue */
-        val = config->Get(String::New("maxmsgs"));
+        val = config->Get(v8::String::New("maxmsgs"));
         if (val->IsUint32())
           obj->mqattrs.mq_maxmsg = val->Uint32Value();
         else
           obj->mqattrs.mq_maxmsg = 10;
         /* Size of each message on the queue */
-        val = config->Get(String::New("msgsize"));
+        val = config->Get(v8::String::New("msgsize"));
         if (val->IsUint32())
           obj->mqattrs.mq_msgsize = val->Uint32Value();
         else
@@ -187,15 +184,15 @@ class PosixMQ : public ObjectWrap {
       /* If opening failed, throw exception */
       if (obj->mqdes == MQDES_INVALID ||
           mq_getattr(obj->mqdes, &(obj->mqattrs)) == -1) {
-        return ThrowException(Exception::Error(
-            String::New(uv_strerror(uv_last_error(uv_default_loop())))));
+        return v8::ThrowException(v8::Exception::Error(
+            v8::String::New(uv_strerror(uv_last_error(uv_default_loop())))));
       }
 
       if (obj->mqname) {
         free(obj->mqname);
         obj->mqname = NULL;
       } else {
-        obj->Emit = Persistent<Function>::New(Local<Function>::Cast(
+        obj->Emit = v8::Persistent<v8::Function>::New(v8::Local<v8::Function>::Cast(
                                                obj->handle_->Get(emit_symbol)));
       }
 
@@ -211,11 +208,11 @@ class PosixMQ : public ObjectWrap {
       uv_poll_init(uv_default_loop(), obj->mqpollhandle, MQDES_TO_FD(obj->mqdes));
       uv_poll_start(obj->mqpollhandle, obj->eventmask, poll_cb);
 
-      return Undefined();
+      return v8::Undefined();
     }
 
     static void poll_cb(uv_poll_t *handle, int status, int events) {
-      HandleScope scope;
+      v8::HandleScope scope;
       assert(status == 0);
 
       PosixMQ* obj = (PosixMQ*)handle->data;
@@ -226,10 +223,10 @@ class PosixMQ : public ObjectWrap {
         obj->eventmask &= ~UV_READABLE;
         obj->canread = true;
 
-        TryCatch try_catch;
+        v8::TryCatch try_catch;
         obj->Emit->Call(obj->handle_, 1, read_emit_argv);
         if (try_catch.HasCaught())
-          FatalException(try_catch);
+          node::FatalException(try_catch);
       } else if (!(events & UV_READABLE)) {
         obj->eventmask |= UV_READABLE;
         obj->canread = false;
@@ -239,10 +236,10 @@ class PosixMQ : public ObjectWrap {
         obj->eventmask &= ~UV_WRITABLE;
         obj->canwrite = true;
 
-        TryCatch try_catch;
+        v8::TryCatch try_catch;
         obj->Emit->Call(obj->handle_, 1, write_emit_argv);
         if (try_catch.HasCaught())
-          FatalException(try_catch);
+          node::FatalException(try_catch);
       } else if (!(events & UV_WRITABLE)) {
         obj->eventmask |= UV_WRITABLE;
         obj->canwrite = false;
@@ -252,37 +249,37 @@ class PosixMQ : public ObjectWrap {
         uv_poll_start(obj->mqpollhandle, obj->eventmask, poll_cb);
     }
 
-    static Handle<Value> Close(const Arguments& args) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
+    static v8::Handle<v8::Value> Close(const v8::Arguments& args) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(args.This());
 
       if (obj->mqdes == MQDES_INVALID) {
-        return ThrowException(Exception::Error(
-            String::New("Queue already closed")));
+        return v8::ThrowException(v8::Exception::Error(
+            v8::String::New("Queue already closed")));
       }
 
       int r = obj->close();
 
       if (r == -1) {
-        return ThrowException(Exception::Error(
-            String::New(uv_strerror(uv_last_error(uv_default_loop())))));
+        return v8::ThrowException(v8::Exception::Error(
+            v8::String::New(uv_strerror(uv_last_error(uv_default_loop())))));
       }
 
-      return Undefined();
+      return v8::Undefined();
     }
 
-    static Handle<Value> Unlink(const Arguments& args) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
+    static v8::Handle<v8::Value> Unlink(const v8::Arguments& args) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(args.This());
 
       if (!obj->mqname) {
-        return ThrowException(Exception::Error(
-            String::New("Nothing to unlink")));
+        return v8::ThrowException(v8::Exception::Error(
+            v8::String::New("Nothing to unlink")));
       }
 
       if (mq_unlink((const char*)obj->mqname) == -1) {
-        return ThrowException(Exception::Error(
-            String::New(uv_strerror(uv_last_error(uv_default_loop())))));
+        return v8::ThrowException(v8::Exception::Error(
+            v8::String::New(uv_strerror(uv_last_error(uv_default_loop())))));
       }
 
       if (obj->mqname) {
@@ -290,94 +287,94 @@ class PosixMQ : public ObjectWrap {
         obj->mqname = NULL;
       }
 
-      return Undefined();
+      return v8::Undefined();
     }
 
-    static Handle<Value> Send(const Arguments& args) {
+    static v8::Handle<v8::Value> Send(const v8::Arguments& args) {
       /* Push data onto the queue using mq_send() */
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(args.This());
       uint32_t priority = 0;
       int send_result;
       bool ret = true;
 
       if (args.Length() < 1) {
-        return ThrowException(Exception::TypeError(
-            String::New("Expected at least 1 argument")));
-      } else if ((!Buffer::HasInstance(args[0])) and (!args[0]->IsString())) {
-        return ThrowException(Exception::TypeError(
-            String::New("First argument must be a Buffer or String")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("Expected at least 1 argument")));
+      } else if ((!node::Buffer::HasInstance(args[0])) and (!args[0]->IsString())) {
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("First argument must be a node::Buffer or v8::String")));
       } else if (args.Length() >= 2) {
         if (args[1]->IsUint32() && args[1]->Uint32Value() < 32)
           priority = args[1]->Uint32Value();
         else {
-          return ThrowException(Exception::TypeError(
-              String::New("Second argument must be an integer 0 <= n < 32")));
+          return v8::ThrowException(v8::Exception::TypeError(
+              v8::String::New("Second argument must be an integer 0 <= n < 32")));
         }
       }
 
-      if (Buffer::HasInstance(args[0])) {
-          /* Object passed in is a Buffer object */
-          send_result = mq_send(obj->mqdes, Buffer::Data(args[0]->ToObject()),
-                                Buffer::Length(args[0]->ToObject()), priority);
+      if (node::Buffer::HasInstance(args[0])) {
+          /* v8::Object passed in is a node::Buffer object */
+          send_result = mq_send(obj->mqdes, node::Buffer::Data(args[0]->ToObject()),
+                                node::Buffer::Length(args[0]->ToObject()), priority);
       }
       else if (args[0]->IsString()) {
-          /* Object passed in is a javascript string */
+          /* v8::Object passed in is a javascript string */
           const char* message;
-          String::AsciiValue msgstr(args[0]->ToString());
+          v8::String::AsciiValue msgstr(args[0]->ToString());
           message = (const char*)(*msgstr);
           send_result = mq_send(obj->mqdes, message, strlen(message), priority);
       }
       else {
-        return ThrowException(Exception::TypeError(
+        return v8::ThrowException(v8::Exception::TypeError(
           /* Shouldn't ever actually get here since we checked above */
-          String::New("First argument wasn't a Buffer or String!")));
+          v8::String::New("First argument wasn't a node::Buffer or v8::String!")));
       }
 
       if (send_result == -1) {
         if (errno != EAGAIN) {
-          return ThrowException(Exception::Error(
-              String::New(uv_strerror(uv_last_error(uv_default_loop())))));
+          return v8::ThrowException(v8::Exception::Error(
+              v8::String::New(uv_strerror(uv_last_error(uv_default_loop())))));
         }
         ret = false;
       }
 
       mq_getattr(obj->mqdes, &(obj->mqattrs));
 
-      return scope.Close(Boolean::New(ret));
+      return scope.Close(v8::Boolean::New(ret));
     }
 
-    static Handle<Value> Receive(const Arguments& args) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(args.This());
+    static v8::Handle<v8::Value> Receive(const v8::Arguments& args) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(args.This());
       ssize_t nBytes;
       uint32_t priority;
       bool retTuple = false;
-      Local<Value> ret;
+      v8::Local<v8::Value> ret;
 
       if (args.Length() < 1) {
-        return ThrowException(Exception::TypeError(
-            String::New("Expected at least 1 argument")));
-      } else if (!Buffer::HasInstance(args[0])) {
-        return ThrowException(Exception::TypeError(
-            String::New("First argument must be a Buffer")));
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("Expected at least 1 argument")));
+      } else if (!node::Buffer::HasInstance(args[0])) {
+        return v8::ThrowException(v8::Exception::TypeError(
+            v8::String::New("First argument must be a node::Buffer")));
       } else if (args.Length() > 1)
         retTuple = args[1]->BooleanValue();
 
-      Local<Object> buf = args[0]->ToObject();
-      if ((nBytes = mq_receive(obj->mqdes, Buffer::Data(buf),
-                               Buffer::Length(buf), &priority)) == -1) {
+      v8::Local<v8::Object> buf = args[0]->ToObject();
+      if ((nBytes = mq_receive(obj->mqdes, node::Buffer::Data(buf),
+                               node::Buffer::Length(buf), &priority)) == -1) {
         if (errno != EAGAIN) {
-          return ThrowException(Exception::Error(
-              String::New(uv_strerror(uv_last_error(uv_default_loop())))));
+          return v8::ThrowException(v8::Exception::Error(
+              v8::String::New(uv_strerror(uv_last_error(uv_default_loop())))));
         }
-        ret = Local<Value>::New(Boolean::New(false));
+        ret = v8::Local<v8::Value>::New(v8::Boolean::New(false));
       } else if (!retTuple)
-        ret = Integer::New(nBytes);
+        ret = v8::Integer::New(nBytes);
       else {
-        Local<Array> tuple = Array::New(2);
-        tuple->Set(0, Integer::New(nBytes));
-        tuple->Set(1, Integer::New(priority));
+        v8::Local<v8::Array> tuple = v8::Array::New(2);
+        tuple->Set(0, v8::Integer::New(nBytes));
+        tuple->Set(1, v8::Integer::New(priority));
         ret = tuple;
       }
 
@@ -386,49 +383,49 @@ class PosixMQ : public ObjectWrap {
       return scope.Close(ret);
     }
 
-    static Handle<Value> MsgsizeGetter (Local<String> property, const AccessorInfo& info) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(info.This());
+    static v8::Handle<v8::Value> MsgsizeGetter (v8::Local<v8::String> property, const v8::AccessorInfo& info) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
       mq_getattr(obj->mqdes, &(obj->mqattrs));
 
-      return scope.Close(Integer::New(obj->mqattrs.mq_msgsize));
+      return scope.Close(v8::Integer::New(obj->mqattrs.mq_msgsize));
     }
 
-    static Handle<Value> MaxmsgsGetter (Local<String> property, const AccessorInfo& info) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(info.This());
+    static v8::Handle<v8::Value> MaxmsgsGetter (v8::Local<v8::String> property, const v8::AccessorInfo& info) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
       mq_getattr(obj->mqdes, &(obj->mqattrs));
 
-      return scope.Close(Integer::New(obj->mqattrs.mq_maxmsg));
+      return scope.Close(v8::Integer::New(obj->mqattrs.mq_maxmsg));
     }
 
-    static Handle<Value> CurmsgsGetter (Local<String> property, const AccessorInfo& info) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(info.This());
+    static v8::Handle<v8::Value> CurmsgsGetter (v8::Local<v8::String> property, const v8::AccessorInfo& info) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
       mq_getattr(obj->mqdes, &(obj->mqattrs));
 
-      return scope.Close(Integer::New(obj->mqattrs.mq_curmsgs));
+      return scope.Close(v8::Integer::New(obj->mqattrs.mq_curmsgs));
     }
 
-    static Handle<Value> IsfullGetter (Local<String> property, const AccessorInfo& info) {
-      HandleScope scope;
-      PosixMQ* obj = ObjectWrap::Unwrap<PosixMQ>(info.This());
+    static v8::Handle<v8::Value> IsfullGetter (v8::Local<v8::String> property, const v8::AccessorInfo& info) {
+      v8::HandleScope scope;
+      PosixMQ* obj = node::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
       mq_getattr(obj->mqdes, &(obj->mqattrs));
 
-      return scope.Close(Boolean::New(obj->mqattrs.mq_curmsgs == obj->mqattrs.mq_maxmsg));
+      return scope.Close(v8::Boolean::New(obj->mqattrs.mq_curmsgs == obj->mqattrs.mq_maxmsg));
     }
 
-    static void Initialize(Handle<Object> target) {
-      HandleScope scope;
+    static void Initialize(v8::Handle<v8::Object> target) {
+      v8::HandleScope scope;
 
-      Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-      Local<String> name = String::NewSymbol("PosixMQ");
+      v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(New);
+      v8::Local<v8::String> name = v8::String::NewSymbol("PosixMQ");
 
-      constructor = Persistent<FunctionTemplate>::New(tpl);
+      constructor = v8::Persistent<v8::FunctionTemplate>::New(tpl);
       constructor->InstanceTemplate()->SetInternalFieldCount(1);
       constructor->SetClassName(name);
 
@@ -438,13 +435,13 @@ class PosixMQ : public ObjectWrap {
       NODE_SET_PROTOTYPE_METHOD(constructor, "shift", Receive);
       NODE_SET_PROTOTYPE_METHOD(constructor, "unlink", Unlink);
 
-      constructor->PrototypeTemplate()->SetAccessor(String::New("msgsize"),
+      constructor->PrototypeTemplate()->SetAccessor(v8::String::New("msgsize"),
                                                     MsgsizeGetter);
-      constructor->PrototypeTemplate()->SetAccessor(String::New("maxmsgs"),
+      constructor->PrototypeTemplate()->SetAccessor(v8::String::New("maxmsgs"),
                                                     MaxmsgsGetter);
-      constructor->PrototypeTemplate()->SetAccessor(String::New("curmsgs"),
+      constructor->PrototypeTemplate()->SetAccessor(v8::String::New("curmsgs"),
                                                     CurmsgsGetter);
-      constructor->PrototypeTemplate()->SetAccessor(String::New("isFull"),
+      constructor->PrototypeTemplate()->SetAccessor(v8::String::New("isFull"),
                                                     IsfullGetter);
       emit_symbol = NODE_PSYMBOL("emit");
       read_emit_argv[0] = NODE_PSYMBOL("messages");
@@ -454,8 +451,8 @@ class PosixMQ : public ObjectWrap {
 };
 
 extern "C" {
-  void init(Handle<Object> target) {
-    HandleScope scope;
+  void init(v8::Handle<v8::Object> target) {
+    v8::HandleScope scope;
     PosixMQ::Initialize(target);
   }
 
