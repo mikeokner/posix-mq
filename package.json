@@ -1,10 +1,33 @@
-{ "name": "posix-mq",
-  "version": "0.1.0",
+{
+  "name": "posix-mq",
+  "version": "1.0.0",
   "author": "Michael Okner",
   "description": "A more flexible Node.js binding for using POSIX message queues",
   "main": "./lib/index",
-  "engines": {"node" : ">=0.8.0"},
-  "keywords": ["posixmq", "posix", "mq", "queue", "message", "linux", "bsd", "mqueue"],
-  "licenses": [{"type": "MIT", "url": "http://github.com/mikeokner/posix-mq/raw/master/LICENSE"}],
-  "repository": {"type": "git", "url": "http://github.com/mikeokner/posix-mq.git"}
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "keywords": [
+    "posixmq",
+    "posix",
+    "mq",
+    "queue",
+    "message",
+    "linux",
+    "bsd",
+    "mqueue"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://github.com/mikeokner/posix-mq/raw/master/LICENSE"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/mikeokner/posix-mq.git"
+  },
+  "dependencies": {
+    "nan": "^2.1.0"
+  }
 }

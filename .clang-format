@@ -1,0 +1,4 @@
+---
+Language:        Cpp
+BasedOnStyle:    WebKit
+ColumnLimit:     100
