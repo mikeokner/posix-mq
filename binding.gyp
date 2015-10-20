@@ -1,6 +1,6 @@
 {
   "targets": [{
-    "target_name": "posix-mq",
+    "target_name": "posixmq",
     "sources": [
       "src/posixmq.cc",
     ],

@@ -28,6 +28,6 @@
     "url": "http://github.com/mikeokner/posix-mq.git"
   },
   "dependencies": {
-    "nan": "^2.1.0"
+    "nan": "2.1.0"
   }
 }

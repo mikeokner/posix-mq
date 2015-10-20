@@ -41,9 +41,6 @@
 #endif
 
 static Nan::Persistent<v8::FunctionTemplate> constructor;
-static Nan::Persistent<v8::String> emit_symbol;
-static Nan::Persistent<v8::Value> read_emit_argv[1];
-static Nan::Persistent<v8::Value> write_emit_argv[1];
 static const mqd_t MQDES_INVALID = (mqd_t)-1;
 
 class PosixMQ : public Nan::ObjectWrap {
@@ -78,6 +75,7 @@ public:
     int close()
     {
         /* Cleanup and call mq_close() */
+        Nan::HandleScope scope;
         int r = 0;
         if (mqueue != MQDES_INVALID) {
             uv_poll_stop(mqpollhandle);
@@ -90,6 +88,7 @@ public:
 
     static void on_close(uv_handle_t* handle)
     {
+        Nan::HandleScope scope;
         PosixMQ* obj = (PosixMQ*)handle->data;
         delete obj->mqpollhandle;
         obj->mqpollhandle = NULL;
@@ -97,6 +96,7 @@ public:
 
     static void poll_cb(uv_poll_t* handle, int status, int events)
     {
+        Nan::HandleScope scope;
         assert(status == 0);
 
         PosixMQ* obj = (PosixMQ*)handle->data;
@@ -107,7 +107,8 @@ public:
             obj->eventmask &= ~UV_READABLE;
             obj->canread = true;
             v8::Local<v8::Function> emit = Nan::New(obj->Emit);
-            v8::Local<v8::Value> read_emit_argv_local[1] = Nan::New(read_emit_argv);
+            v8::Local<v8::Value> read_emit_argv_local[1];
+            read_emit_argv_local[0] = Nan::New<v8::String>("messages").ToLocalChecked();
             Nan::TryCatch try_catch;
             Nan::MakeCallback(obj->handle(), emit, 1, read_emit_argv_local);
             if (try_catch.HasCaught()) {
@@ -123,7 +124,8 @@ public:
             obj->eventmask &= ~UV_WRITABLE;
             obj->canwrite = true;
             v8::Local<v8::Function> emit = Nan::New(obj->Emit);
-            v8::Local<v8::Value> write_emit_argv_local[1] = Nan::New(write_emit_argv);
+            v8::Local<v8::Value> write_emit_argv_local[1];
+            write_emit_argv_local[0] = Nan::New<v8::String>("drain").ToLocalChecked();
             Nan::TryCatch try_catch;
             Nan::MakeCallback(obj->handle(), emit, 1, write_emit_argv_local);
             if (try_catch.HasCaught()) {
@@ -143,6 +145,7 @@ public:
     static void New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     {
         /* Create a new instance of this class */
+        Nan::HandleScope scope;
         if (!info.IsConstructCall()) {
             Nan::ThrowTypeError("Use `new` to create instances of this object.");
             return;
@@ -156,12 +159,19 @@ public:
 
     static void Open(const Nan::FunctionCallbackInfo<v8::Value>& info)
     {
-        /* Create/open a queue with mq_open() */
+        /* Create/open a queue with mq_open()
+         * TODO: clean up this method & its reuse of `val`
+         */
+        Nan::HandleScope scope;
         PosixMQ* obj = Nan::ObjectWrap::Unwrap<PosixMQ>(info.This());
         bool doCreate = false;
         int flags = O_RDWR | O_NONBLOCK;
         mode_t mode;
-        const char* name;
+
+        /* Close existing queue if already open */
+        if (obj->mqueue != MQDES_INVALID) {
+            obj->close();
+        }
 
         if (info.Length() != 1) {
             Nan::ThrowTypeError("Expecting 1 argument");
@@ -204,7 +214,7 @@ public:
             return;
         }
         v8::Local<v8::String> namestr = Nan::To<v8::String>(val).ToLocalChecked();
-        name = (const char*)(*namestr);
+        Nan::Utf8String name(namestr);
 
         val = Nan::Get(config, Nan::New("mode").ToLocalChecked()).ToLocalChecked();
 
@@ -216,7 +226,8 @@ public:
             }
             else if (val->IsString()) {
                 v8::Local<v8::String> modestr = Nan::To<v8::String>(val).ToLocalChecked();
-                mode = (mode_t)strtoul((const char*)(*modestr), NULL, 8);
+                Nan::Utf8String mode_chars(modestr);
+                mode = (mode_t)strtoul((const char*)(*mode_chars), NULL, 8);
             }
             else {
                 Nan::ThrowTypeError("'mode' property must be a string or integer");
@@ -245,20 +256,15 @@ public:
             else {
                 obj->mqattrs.mq_msgsize = 8192;
             }
-        }
 
-        /* Close existing queue if already open */
-        if (obj->mqueue != MQDES_INVALID) {
-            obj->close();
+            /* Do the open */
+            obj->mqueue = mq_open(*name, flags, mode, &(obj->mqattrs));
+        }
+        else {
+            obj->mqueue = mq_open(*name, flags);
         }
 
         /* Open mq reference */
-        if (doCreate) {
-            obj->mqueue = mq_open(name, flags, mode, &(obj->mqattrs));
-        }
-        else {
-            obj->mqueue = mq_open(name, flags);
-        }
         int mq_rc = mq_getattr(obj->mqueue, &(obj->mqattrs));
 
         /* If opening failed, throw exception */
@@ -276,11 +282,12 @@ public:
         }
         else {
             obj->Emit.Reset(Nan::Persistent<v8::Function>(v8::Local<v8::Function>::Cast(
-                Nan::Get(obj->handle(), Nan::New(emit_symbol)).ToLocalChecked())));
+                Nan::Get(obj->handle(), Nan::New<v8::String>("emit").ToLocalChecked())
+                    .ToLocalChecked())));
         }
 
         /* Set attrs for reference */
-        obj->mqname = strdup(name);
+        obj->mqname = strdup(*name);
         obj->canread = !(obj->mqattrs.mq_curmsgs > 0);
         obj->canwrite = !(obj->mqattrs.mq_curmsgs < obj->mqattrs.mq_maxmsg);
         if (!obj->mqpollhandle) {
@@ -297,6 +304,7 @@ public:
 
     static void Close(const Nan::FunctionCallbackInfo<v8::Value>& info)
     {
+        Nan::HandleScope scope;
         PosixMQ* obj = Nan::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
         if (obj->mqueue == MQDES_INVALID) {
@@ -315,6 +323,7 @@ public:
 
     static void Unlink(const Nan::FunctionCallbackInfo<v8::Value>& info)
     {
+        Nan::HandleScope scope;
         PosixMQ* obj = Nan::ObjectWrap::Unwrap<PosixMQ>(info.This());
 
         if (!obj->mqname) {
@@ -369,13 +378,13 @@ public:
         }
         else if (info[0]->IsString()) {
             /* v8::Object passed in is a javascript string */
-            const char* message;
             v8::Local<v8::String> msgstr = Nan::To<v8::String>(info[0]).ToLocalChecked();
-            message = (const char*)(*msgstr);
-            send_result = mq_send(obj->mqueue, message, strlen(message), priority);
+            Nan::Utf8String message(msgstr);
+            send_result = mq_send(obj->mqueue, *message, strlen(*message), priority);
         }
         else {
-            /* Shouldn't ever actually get here since we checked above */
+            /* Shouldn't ever actually get here since we checked above.
+             * Just keeping the compiler warning-free. */
             Nan::ThrowTypeError("First argument wasn't a node::Buffer or v8::String!");
             return;
         }
@@ -487,14 +496,9 @@ public:
             scope.Escape(Nan::New<v8::Boolean>(obj->mqattrs.mq_curmsgs == obj->mqattrs.mq_maxmsg)));
     }
 
-    static void Initialize(v8::Local<v8::Object> target)
+    static void Initialize(v8::Handle<v8::Object> target)
     {
         Nan::HandleScope scope;
-        /* Init symbols */
-        emit_symbol.Reset(Nan::New<v8::String>("emit").ToLocalChecked());
-        read_emit_argv[0].Reset(Nan::New<v8::String>("messages").ToLocalChecked());
-        write_emit_argv[0].Reset(Nan::New<v8::String>("drain").ToLocalChecked());
-
         /* Init FunctionTemplate */
         v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
         v8::Local<v8::String> name = Nan::New<v8::String>("PosixMQ").ToLocalChecked();
@@ -526,7 +530,7 @@ public:
 };
 
 extern "C" {
-void init(v8::Local<v8::Object> target)
+void init(v8::Handle<v8::Object> target)
 {
     Nan::HandleScope scope;
     PosixMQ::Initialize(target);
