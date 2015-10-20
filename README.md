@@ -5,7 +5,7 @@ Description
 
 [![NPM](https://nodei.co/npm/posix-mq.png)](https://npmjs.org/package/posix-mq)
 
-A [node.js](http://nodejs.org/) library for using POSIX message queues. Originally forked from mscdex/pmq to provide additional customization of flags passed to `mq_open()`. Updated to support v0.12 and v4+ using [Native Abstractions for Node.js](https://github.com/nodejs/nan).
+A [node.js](http://nodejs.org/) library for using POSIX message queues. Originally forked from mscdex/pmq to provide additional customization of flags passed to `mq_open()`. Subsequently re-written to support v0.12 and v4+ using [Native Abstractions for Node.js](https://github.com/nodejs/nan).
 
 
 Requirements
@@ -16,6 +16,8 @@ Requirements
 * Linux 2.6.6+ or FreeBSD kernel with POSIX message queue support compiled in (`CONFIG_POSIX_MQUEUE`, which is enabled by default)
 
 * See `man mq_overview` for how/where to modify global POSIX message queue resource limits
+
+* Depends on [nan](https://www.npmjs.com/package/nan) v2.1.0 which will be automatically installed when running `npm install posix-mq`.
 
 
 Install
@@ -29,43 +31,41 @@ $ npm install posix-mq
 Examples
 ========
 
+* Create a new queue accessible by all, fill it up, and then close it:
+
+```javascript
+var mq = new PosixMQ();
+mq.open({
+    name: '/pmqtest',
+    create: true,
+    mode: '0777',
+    maxmsgs: 10,
+    msgsize: 8
+});
+var writebuf = new Buffer(1);
+var r;
+do {
+    writebuf[0] = Math.floor(Math.random() * 93) + 33;
+    console.log("Writing "+ writebuf[0] +" ('"+ String.fromCharCode(writebuf[0]) +"') to the queue...");
+} while ((r = mq.push(writebuf)) !== false);
+mq.close();
+```
+
 * Open an existing queue, read all of its messages, and then remove and close it:
 
 ```javascript
-var PosixMQ = require('posix-mq');
-var readbuf, mq;
-
-mq = new PosixMQ();
+var mq = new PosixMQ();
 mq.on('messages', function() {
     var n;
     while ((n = this.shift(readbuf)) !== false) {
-        console.log('Received message ('+ n +' bytes): '+ readbuf.toString('utf8', 0, n));
-        console.log('Messages left: '+ this.curmsgs);
+        console.log("Received message ("+ n +" bytes): "+ readbuf.toString('utf8', 0, n));
+        console.log("Messages left: "+ this.curmsgs);
     }
     this.unlink();
     this.close();
 });
 mq.open({name: '/pmqtest'});
 readbuf = new Buffer(mq.msgsize);
-```
-
-* Create a new queue accessible by all, fill it up, and then close it:
-
-```javascript
-var PosixMQ = require('posix-mq');
-var mq, writebuf, r;
-
-mq = new PosixMQ();
-mq.open({
-    name: '/pmqtest',
-    create: true,
-    mode: '0777'
-});
-writebuf = new Buffer(1);
-do {
-    writebuf[0] = Math.floor(Math.random() * 93) + 33;
-} while ((r = mq.push(writebuf)) !== false);
-mq.close();
 ```
 
 
