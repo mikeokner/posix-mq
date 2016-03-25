@@ -1,6 +1,6 @@
 /* Forked from the `pmq' project by Brian White (https://github.com/mscdex/pmq)
  *
- * by Michael Okner (https://github.com/mikeokner)
+ * by Michael Okner (https://gitlab.com/mikeokner)
  *
  * Added additional features:
  *      (2014-09)

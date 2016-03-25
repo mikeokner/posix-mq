@@ -1,8 +1,6 @@
 Description
 ===========
 
-[![Build Status](https://travis-ci.org/mikeokner/posix-mq.svg)](https://travis-ci.org/mikeokner/posix-mq) [![Join the chat at https://gitter.im/mikeokner/posix-mq](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mikeokner/posix-mq?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 [![NPM](https://nodei.co/npm/posix-mq.png)](https://npmjs.org/package/posix-mq)
 
 A [node.js](http://nodejs.org/) library for using POSIX message queues. Originally forked from mscdex/pmq to provide additional customization of flags passed to `mq_open()`. Subsequently re-written to support v0.12 and v4+ using [Native Abstractions for Node.js](https://github.com/nodejs/nan).
