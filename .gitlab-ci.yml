@@ -11,6 +11,7 @@ node08:
     - export CXX=g++-4.8
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
+    - node test.js
 
 node10:
     script:
@@ -21,6 +22,7 @@ node10:
     - export CXX=g++-4.8
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
+    - node test.js
 
 node12:
     script:
@@ -31,6 +33,7 @@ node12:
     - export CXX=g++-4.8
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
+    - node test.js
 
 node4:
     script:
@@ -41,16 +44,7 @@ node4:
     - export CXX=g++-4.8
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
-
-node5:
-    script:
-    - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v5 && nvm use v5
-    - npm install npm
-    - mv node_modules npm
-    - npm/.bin/npm --version
-    - export CXX=g++-4.8
-    - $CXX --version
-    - npm/.bin/npm install --unsafe-perm
+    - node test.js
 
 node6:
     script:
@@ -61,3 +55,4 @@ node6:
     - export CXX=g++-4.8
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
+    - node test.js

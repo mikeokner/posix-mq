@@ -1,4 +1,5 @@
-var PosixMQ = require('posix-mq');
+//var PosixMQ = require('posix-mq');
+var PosixMQ = require('./lib/index');
 
 /* Create a new queue accessible by all, fill it up, and then close it. */
 var mq = new PosixMQ();
