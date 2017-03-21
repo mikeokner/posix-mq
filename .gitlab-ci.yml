@@ -13,7 +13,7 @@ node08:
     - npm/.bin/npm install --unsafe-perm
     - node test.js
 
-node10:
+node010:
     script:
     - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v0.10 && nvm use v0.10
     - npm install npm
@@ -24,7 +24,7 @@ node10:
     - npm/.bin/npm install --unsafe-perm
     - node test.js
 
-node12:
+node012:
     script:
     - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v0.12 && nvm use v0.12
     - npm install npm
@@ -49,6 +49,17 @@ node4:
 node6:
     script:
     - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v6 && nvm use v6
+    - npm install npm
+    - mv node_modules npm
+    - npm/.bin/npm --version
+    - export CXX=g++-4.8
+    - $CXX --version
+    - npm/.bin/npm install --unsafe-perm
+    - node test.js
+
+node7:
+    script:
+    - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v7 && nvm use v7
     - npm install npm
     - mv node_modules npm
     - npm/.bin/npm --version
