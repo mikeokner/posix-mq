@@ -9,7 +9,7 @@ A [node.js](http://nodejs.org/) library for using POSIX message queues. Original
 Requirements
 ============
 
-* [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v5, v6
+* [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v5, v6, v7, v8
 
 * Linux 2.6.6+ or FreeBSD kernel with POSIX message queue support compiled in (`CONFIG_POSIX_MQUEUE`, which is enabled by default)
 

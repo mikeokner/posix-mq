@@ -67,3 +67,14 @@ node7:
     - $CXX --version
     - npm/.bin/npm install --unsafe-perm
     - node test.js
+
+node8:
+    script:
+    - rm -rf $CI_PROJECT_DIR/.nvm && git clone https://github.com/creationix/nvm.git $CI_PROJECT_DIR/.nvm && (cd $CI_PROJECT_DIR/.nvm && git checkout `git describe --abbrev=0 --tags`) && source $CI_PROJECT_DIR/.nvm/nvm.sh && nvm install v8 && nvm use v8
+    - npm install npm
+    - mv node_modules npm
+    - npm/.bin/npm --version
+    - export CXX=g++-4.8
+    - $CXX --version
+    - npm/.bin/npm install --unsafe-perm
+    - node test.js
