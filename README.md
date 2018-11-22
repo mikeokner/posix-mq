@@ -1,7 +1,7 @@
-Description
-===========
+## Description
 
-[![NPM](https://nodei.co/npm/posix-mq.png)](https://npmjs.org/package/posix-mq)  [![Build Status](https://travis-ci.org/mikeokner/posix-mq.svg)](https://travis-ci.org/mikeokner/posix-mq)
+[![NPM](https://nodei.co/npm/posix-mq.png)](https://npmjs.org/package/posix-mq)
+[![Build Status](https://travis-ci.org/mikeokner/posix-mq.svg)](https://travis-ci.org/mikeokner/posix-mq)
 
 A [node.js](http://nodejs.org/) library for using POSIX message queues.
 Originally forked from mscdex/pmq to provide additional customization of flags
@@ -9,8 +9,7 @@ passed to `mq_open()`. Subsequently re-written to support v0.12 and v4+ using
 [Native Abstractions for Node.js](https://github.com/nodejs/nan).
 
 
-Requirements
-============
+## Requirements
 
 * [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v6, v8, v10, v11
 
@@ -21,16 +20,14 @@ Requirements
 * Depends on [nan](https://www.npmjs.com/package/nan) which will be automatically installed when running `npm install posix-mq`.
 
 
-Install
-=======
+## Install
 
-```shell
+```console
 $ npm install posix-mq
 ```
 
 
-Examples
-========
+## Examples
 
 * Create a new queue accessible by all, fill it up, and then close it:
 
@@ -70,18 +67,15 @@ readbuf = new Buffer(mq.msgsize);
 ```
 
 
-API
-===
+## API
 
-Events
-------
+### Events
 
 * **messages**() - Emitted every time the queue goes from empty to having at least one message.
 
 * **drain**() - Emitted when there is room for at least one message in the queue.
 
-Properties (read-only)
-----------------------
+### Properties (read-only)
 
 * **isFull** - _boolean_ - Convenience property that returns true if `curmsgs` === `maxmsgs`.
 
@@ -91,8 +85,7 @@ Properties (read-only)
 
 * **curmsgs** - _integer_ - The number of messages currently in the queue.
 
-Methods
--------
+### Methods
 
 * **(constructor)**() - Creates and returns a new PosixMQ instance.
 
