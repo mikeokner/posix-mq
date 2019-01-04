@@ -264,16 +264,17 @@ public:
             obj->mqueue = mq_open(*name, flags);
         }
 
+        /* If opening failed, throw exception */
+        if (obj->mqueue == MQDES_INVALID) {
+            Nan::ThrowError(strerror(errno));
+            return;
+        }
+
         /* Open mq reference */
         int mq_rc = mq_getattr(obj->mqueue, &(obj->mqattrs));
 
-        /* If opening failed, throw exception */
-        if (obj->mqueue == MQDES_INVALID) {
-            Nan::ThrowError(GET_UV_ERROR_STR(obj->mqueue));
-            return;
-        }
-        else if (mq_rc < 0) {
-            Nan::ThrowError(GET_UV_ERROR_STR(mq_rc));
+        if (mq_rc == -1) {
+            Nan::ThrowError(strerror(errno));
         }
 
         if (obj->mqname) {
@@ -332,8 +333,8 @@ public:
         }
 
         int mq_rc = mq_unlink((const char*)obj->mqname);
-        if (mq_rc < 0) {
-            Nan::ThrowError(GET_UV_ERROR_STR(mq_rc));
+        if (mq_rc == -1) {
+            Nan::ThrowError(strerror(errno));
             return;
         }
 
@@ -391,7 +392,7 @@ public:
 
         if (send_result == -1) {
             if (errno != EAGAIN) {
-                Nan::ThrowError(GET_UV_ERROR_STR(errno));
+                Nan::ThrowError(strerror(errno));
                 return;
             }
             ret = false;
@@ -428,7 +429,7 @@ public:
                  obj->mqueue, node::Buffer::Data(buf), node::Buffer::Length(buf), &priority))
             == -1) {
             if (errno != EAGAIN) {
-                Nan::ThrowError(GET_UV_ERROR_STR(errno));
+                Nan::ThrowError(strerror(errno));
                 return;
             }
             ret = Nan::New<v8::Boolean>(false);
