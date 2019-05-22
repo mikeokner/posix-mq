@@ -73,6 +73,17 @@ readbuf = new Buffer(mq.msgsize);
 
 * **messages**() - Emitted every time the queue goes from empty to having at least one message.
 
+_Note: According to [the man page for mq_notify](https://www.systutorials.com/docs/linux/man/3-mq_notify/):_
+
+> Message notification occurs only when a new message arrives and the queue was
+> previously empty. If the queue was not empty at the time mq_notify() was
+> called, then a notification will occur only after the queue is emptied and a
+> new message arrives.
+
+_Therefore, the queue must be empty when assigning the `mq.on('messages',
+func)` handler.  You should first read any available messages by calling
+`mq.shift` before assigning the handler._
+
 * **drain**() - Emitted when there is room for at least one message in the queue.
 
 ### Properties (read-only)

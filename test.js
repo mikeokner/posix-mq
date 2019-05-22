@@ -10,7 +10,7 @@ mq.open({
     maxmsgs: 10,
     msgsize: 8
 });
-var writebuf = new Buffer(1);
+var writebuf = new Buffer.alloc(1);
 var r;
 do {
     writebuf[0] = Math.floor(Math.random() * 93) + 33;
@@ -30,4 +30,4 @@ mq.on('messages', function() {
     this.close();
 });
 mq.open({name: '/pmqtest'});
-readbuf = new Buffer(mq.msgsize);
+readbuf = new Buffer.alloc(mq.msgsize);
