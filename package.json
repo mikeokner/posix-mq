@@ -24,5 +24,8 @@
   },
   "dependencies": {
     "nan": "2.11.1"
+  },
+  "devDependencies": {
+    "safer-buffer": "^2.1.2"
   }
 }

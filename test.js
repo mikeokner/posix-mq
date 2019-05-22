@@ -1,5 +1,6 @@
 //var PosixMQ = require('posix-mq');
-var PosixMQ = require('./lib/index');
+const PosixMQ = require('./lib/index');
+const Buffer = require('safer-buffer').Buffer;
 
 /* Create a new queue accessible by all, fill it up, and then close it. */
 var mq = new PosixMQ();
@@ -10,7 +11,7 @@ mq.open({
     maxmsgs: 10,
     msgsize: 8
 });
-var writebuf = new Buffer.alloc(1);
+var writebuf = Buffer.alloc(1);
 var r;
 do {
     writebuf[0] = Math.floor(Math.random() * 93) + 33;
@@ -30,4 +31,4 @@ mq.on('messages', function() {
     this.close();
 });
 mq.open({name: '/pmqtest'});
-readbuf = new Buffer.alloc(mq.msgsize);
+readbuf = Buffer.alloc(mq.msgsize);
