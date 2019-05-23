@@ -32,7 +32,8 @@ $ npm install posix-mq
 * Create a new queue accessible by all, fill it up, and then close it:
 
 ```javascript
-var mq = new PosixMQ();
+const PosixMQ = require('posix-mq');
+const mq = new PosixMQ();
 mq.open({
     name: '/pmqtest',
     create: true,
@@ -40,7 +41,7 @@ mq.open({
     maxmsgs: 10,
     msgsize: 8
 });
-var writebuf = new Buffer(1);
+var writebuf = Buffer.alloc(1);
 var r;
 do {
     writebuf[0] = Math.floor(Math.random() * 93) + 33;
@@ -49,10 +50,11 @@ do {
 mq.close();
 ```
 
-* Open an existing queue, read all of its messages, and then remove and close it:
+* Open an existing queue, read all of its messages, and then remove it from the system and close it:
 
 ```javascript
-var mq = new PosixMQ();
+const PosixMQ = require('posix-mq');
+const mq = new PosixMQ();
 mq.on('messages', function() {
     var n;
     while ((n = this.shift(readbuf)) !== false) {
@@ -63,7 +65,35 @@ mq.on('messages', function() {
     this.close();
 });
 mq.open({name: '/pmqtest'});
-readbuf = new Buffer(mq.msgsize);
+readbuf = Buffer.alloc(mq.msgsize);
+```
+
+* Open an existing queue and continuously listen for new messages:
+
+```javascript
+const PosixMQ = require('./lib/index');
+const mq = new PosixMQ();
+
+// Open the queue and allocate the buffer to read messages into
+mq.open({name: '/pmqtest'});
+readbuf = Buffer.alloc(mq.msgsize);
+
+// Define the handler function to read all messages currently in the queue
+handleMsg = () => {
+    let n;
+    while ((n = mq.shift(readbuf)) !== false) {
+        let msg = readbuf.toString('utf8', 0, n);
+        console.log("Received message("+ n +" bytes): " + msg);
+        console.log("Messages left: "+ mq.curmsgs);
+    }
+};
+
+// Call the handler function once before binding the handler to ensure
+// all existing messages are read
+handleMsg();
+
+// Bind the handler now that the queue has been emptied by the previous invocation
+mq.on('messages', handleMsg);
 ```
 
 

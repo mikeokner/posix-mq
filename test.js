@@ -2,8 +2,8 @@
 const PosixMQ = require('./lib/index');
 const Buffer = require('safer-buffer').Buffer;
 
-/* Create a new queue accessible by all, fill it up, and then close it. */
-var mq = new PosixMQ();
+// Open the queue, fill it up, and close it
+let mq = new PosixMQ();
 mq.open({
     name: '/pmqtest',
     create: true,
@@ -11,20 +11,23 @@ mq.open({
     maxmsgs: 10,
     msgsize: 8
 });
-var writebuf = Buffer.alloc(1);
-var r;
+let writebuf = Buffer.alloc(1);
+let r;
+
+// Fill up the queue
 do {
     writebuf[0] = Math.floor(Math.random() * 93) + 33;
     console.log("Writing "+ writebuf[0] +" ('"+ String.fromCharCode(writebuf[0]) +"') to the queue...");
 } while ((r = mq.push(writebuf)) !== false);
 mq.close();
 
-/* Open an existing queue, read messages, and then close. */
-var mq = new PosixMQ();
+// Open an existing queue, read messages, and then remove & close.
+mq = new PosixMQ();
 mq.on('messages', function() {
-    var n;
+    let n;
     while ((n = this.shift(readbuf)) !== false) {
-        console.log("Received message ("+ n +" bytes): "+ readbuf.toString('utf8', 0, n));
+        let msg = readbuf.toString('utf8', 0, n);
+        console.log("Received message ("+ n +" bytes): "+ msg);
         console.log("Messages left: "+ this.curmsgs);
     }
     this.unlink();
