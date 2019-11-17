@@ -182,7 +182,7 @@ public:
             return;
         }
 
-        v8::Local<v8::Object> config = info[0]->ToObject();
+        v8::Local<v8::Object> config = info[0].As<v8::Object>();
         v8::Local<v8::Value> val;
 
         /* Whether or not to create the queue when opening */
@@ -192,14 +192,14 @@ public:
                 Nan::ThrowTypeError("'create' property must be a boolean");
                 return;
             }
-            doCreate = val->BooleanValue();
+            doCreate = Nan::To<bool>(val).FromJust();
         }
 
         /* Optional override for default O_RDWR | O_NONBLOCK flag */
         if (!(val = Nan::Get(config, Nan::New("flags").ToLocalChecked()).ToLocalChecked())
                  ->IsUndefined()) {
             if (val->IsUint32()) {
-                flags = val->Uint32Value();
+                flags = Nan::To<int32_t>(val).FromJust();
             }
             else {
                 Nan::ThrowTypeError("'flags' property must be an int");
@@ -222,7 +222,7 @@ public:
         if (doCreate) {
             /* Mode specifies permissions */
             if (val->IsUint32()) {
-                mode = (mode_t)val->Uint32Value();
+                mode = (mode_t)Nan::To<int32_t>(val).FromJust();
             }
             else if (val->IsString()) {
                 v8::Local<v8::String> modestr = Nan::To<v8::String>(val).ToLocalChecked();
@@ -236,14 +236,14 @@ public:
 
             flags |= O_CREAT;
             val = Nan::Get(config, Nan::New("exclusive").ToLocalChecked()).ToLocalChecked();
-            if (val->IsBoolean() && val->BooleanValue() == true) {
+            if (val->IsBoolean() && Nan::To<bool>(val).FromJust() == true) {
                 flags |= O_EXCL;
             }
 
             /* Max number of messages allowed in queue */
             val = Nan::Get(config, Nan::New("maxmsgs").ToLocalChecked()).ToLocalChecked();
             if (val->IsUint32()) {
-                obj->mqattrs.mq_maxmsg = val->Uint32Value();
+                obj->mqattrs.mq_maxmsg = Nan::To<int32_t>(val).FromJust();
             }
             else {
                 obj->mqattrs.mq_maxmsg = 10;
@@ -251,7 +251,7 @@ public:
             /* Size of each message on the queue */
             val = Nan::Get(config, Nan::New("msgsize").ToLocalChecked()).ToLocalChecked();
             if (val->IsUint32()) {
-                obj->mqattrs.mq_msgsize = val->Uint32Value();
+                obj->mqattrs.mq_msgsize = Nan::To<int32_t>(val).FromJust();
             }
             else {
                 obj->mqattrs.mq_msgsize = 8192;
@@ -363,8 +363,8 @@ public:
             return;
         }
         else if (info.Length() >= 2) {
-            if (info[1]->IsUint32() && info[1]->Uint32Value() < 32) {
-                priority = info[1]->Uint32Value();
+            if (info[1]->IsUint32() && Nan::To<int32_t>(info[1]).FromJust() < 32) {
+                priority = Nan::To<int32_t>(info[1]).FromJust();
             }
             else {
                 Nan::ThrowTypeError("Second argument must be an integer 0 <= n < 32");
@@ -374,8 +374,8 @@ public:
 
         if (node::Buffer::HasInstance(info[0])) {
             /* v8::Object passed in is a node::Buffer object */
-            send_result = mq_send(obj->mqueue, node::Buffer::Data(info[0]->ToObject()),
-                node::Buffer::Length(info[0]->ToObject()), priority);
+            send_result = mq_send(obj->mqueue, node::Buffer::Data(info[0].As<v8::Object>()),
+                node::Buffer::Length(info[0].As<v8::Object>()), priority);
         }
         else if (info[0]->IsString()) {
             /* v8::Object passed in is a javascript string */
@@ -421,10 +421,10 @@ public:
             return;
         }
         else if (info.Length() > 1) {
-            retTuple = info[1]->BooleanValue();
+            retTuple = Nan::To<bool>(info[1]).FromJust();
         }
 
-        v8::Local<v8::Object> buf = info[0]->ToObject();
+        v8::Local<v8::Object> buf = info[0].As<v8::Object>();
         if ((nBytes = mq_receive(
                  obj->mqueue, node::Buffer::Data(buf), node::Buffer::Length(buf), &priority))
             == -1) {
@@ -439,8 +439,8 @@ public:
         }
         else {
             v8::Local<v8::Array> tuple = Nan::New<v8::Array>(2);
-            tuple->Set(0, Nan::New<v8::Integer>(static_cast<uint32_t>(nBytes)));
-            tuple->Set(1, Nan::New<v8::Integer>(static_cast<uint32_t>(priority)));
+            Nan::Set(tuple, 0, Nan::New<v8::Integer>(static_cast<uint32_t>(nBytes)));
+            Nan::Set(tuple, 1, Nan::New<v8::Integer>(static_cast<uint32_t>(priority)));
             ret = tuple;
         }
 
@@ -497,12 +497,12 @@ public:
             scope.Escape(Nan::New<v8::Boolean>(obj->mqattrs.mq_curmsgs == obj->mqattrs.mq_maxmsg)));
     }
 
-    static void Initialize(v8::Handle<v8::Object> target)
+    static void Initialize(v8::Local<v8::Object> target)
     {
         Nan::HandleScope scope;
         /* Init FunctionTemplate */
-        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
         v8::Local<v8::String> name = Nan::New<v8::String>("PosixMQ").ToLocalChecked();
+        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
 
         tpl->SetClassName(name);
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -515,23 +515,19 @@ public:
         Nan::SetPrototypeMethod(tpl, "unlink", Unlink);
 
         /* Init properties */
-        Nan::SetAccessor(
-            tpl->PrototypeTemplate(), Nan::New("msgsize").ToLocalChecked(), MsgsizeGetter);
-        Nan::SetAccessor(
-            tpl->PrototypeTemplate(), Nan::New("maxmsgs").ToLocalChecked(), MaxmsgsGetter);
-        Nan::SetAccessor(
-            tpl->PrototypeTemplate(), Nan::New("curmsgs").ToLocalChecked(), CurmsgsGetter);
-        Nan::SetAccessor(
-            tpl->PrototypeTemplate(), Nan::New("isFull").ToLocalChecked(), IsfullGetter);
+        Nan::SetAccessor(tpl->PrototypeTemplate(), Nan::New("msgsize").ToLocalChecked(), MsgsizeGetter);
+        Nan::SetAccessor(tpl->PrototypeTemplate(), Nan::New("maxmsgs").ToLocalChecked(), MaxmsgsGetter);
+        Nan::SetAccessor(tpl->PrototypeTemplate(), Nan::New("curmsgs").ToLocalChecked(), CurmsgsGetter);
+        Nan::SetAccessor(tpl->PrototypeTemplate(), Nan::New("isFull").ToLocalChecked(), IsfullGetter);
 
         /* Hook it up */
         constructor.Reset(tpl);
-        target->Set(name, tpl->GetFunction());
+        Nan::Set(target, name, Nan::GetFunction(tpl).ToLocalChecked());
     }
 };
 
 extern "C" {
-void init(v8::Handle<v8::Object> target)
+void init(v8::Local<v8::Object> target)
 {
     Nan::HandleScope scope;
     PosixMQ::Initialize(target);
