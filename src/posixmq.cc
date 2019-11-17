@@ -8,6 +8,8 @@
  *        Allow pushing strings directly rather than requiring a Buffer instance
  *      (2015-10)
  *        Add support for Node v0.12 & v4 using Native Abstractions
+ *      (2019-11)
+ *        Add support for Node v12 with more NAN changes
  */
 
 #include <stdlib.h>
@@ -497,7 +499,7 @@ public:
             scope.Escape(Nan::New<v8::Boolean>(obj->mqattrs.mq_curmsgs == obj->mqattrs.mq_maxmsg)));
     }
 
-    static void Initialize(v8::Local<v8::Object> target)
+    static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target)
     {
         Nan::HandleScope scope;
         /* Init FunctionTemplate */
@@ -527,7 +529,7 @@ public:
 };
 
 extern "C" {
-void init(v8::Local<v8::Object> target)
+NAN_MODULE_INIT(init)
 {
     Nan::HandleScope scope;
     PosixMQ::Initialize(target);

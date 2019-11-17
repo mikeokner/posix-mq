@@ -5,7 +5,10 @@
       "src/posixmq.cc",
     ],
     "cflags": ["-O3"],
-    "ldflags": ["-lrt"],
+    "ldflags": [],
+    "link_settings": {
+        "libraries": ["-lrt"]
+    },
     "include_dirs": [
       "<!(node -e \"require('nan')\")"
     ]
