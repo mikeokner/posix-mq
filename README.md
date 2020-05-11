@@ -11,7 +11,7 @@ passed to `mq_open()`. Subsequently re-written to support v0.12 and v4+ using
 
 ## Requirements
 
-* [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v6, v8, v10, v11
+* [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v6, v8, v10, v12, v13, v14
 
 * Linux 2.6.6+ or FreeBSD kernel with POSIX message queue support compiled in (`CONFIG_POSIX_MQUEUE`, which is enabled by default)
 
