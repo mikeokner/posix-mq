@@ -1,6 +1,6 @@
 ## Description
 
-![Build Status](https://github.com/mikeokner/posix-mq/actions/workflows/build-test.yml/badge.svg)
+[![Build Status](https://github.com/mikeokner/posix-mq/actions/workflows/build-test.yml/badge.svg)](https://github.com/mikeokner/posix-mq/actions/workflows/build-test.yml)
 
 [![NPM](https://nodei.co/npm/posix-mq.png)](https://npmjs.org/package/posix-mq)
 
