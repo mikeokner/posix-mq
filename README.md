@@ -6,20 +6,18 @@
 
 A [node.js](http://nodejs.org/) library for using POSIX message queues.
 Originally forked from mscdex/pmq to provide additional customization of flags
-passed to `mq_open()`. Subsequently re-written to support v0.12 and v4+ using
-[Native Abstractions for Node.js](https://github.com/nodejs/nan).
+passed to `mq_open()`. Subsequently re-written to use
+[Node-API](https://nodejs.org/api/n-api.html).
 
 
 ## Requirements
 
-* [node.js](http://nodejs.org/) -- Tested against v0.8, v0.10, v0.12, v4, v6, v8, v10, v12, v13, v14, v16, v18
+* [node.js](http://nodejs.org/) -- Tested against v10, v12, v14, v16, v18,
+  v20, v22, v24, and v26
 
 * Linux 2.6.6+ or FreeBSD kernel with POSIX message queue support compiled in (`CONFIG_POSIX_MQUEUE`, which is enabled by default)
 
 * See `man mq_overview` for how/where to modify global POSIX message queue resource limits
-
-* Depends on [nan](https://www.npmjs.com/package/nan) which will be automatically installed when running `npm install posix-mq`.
-
 
 ## Install
 

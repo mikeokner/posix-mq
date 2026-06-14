@@ -5,7 +5,7 @@
   "description": "A flexible Node.js binding for using POSIX message queues",
   "main": "./lib/index",
   "engines": {
-    "node": ">=0.8.0"
+    "node": ">=10.0.0"
   },
   "keywords": [
     "posixmq",
@@ -21,9 +21,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/mikeokner/posix-mq.git"
-  },
-  "dependencies": {
-    "nan": "2.15.0"
   },
   "devDependencies": {
     "safer-buffer": "^2.1.2"

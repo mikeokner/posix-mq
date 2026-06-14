@@ -5,7 +5,7 @@ set -u
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd -P)
 
-DEFAULT_VERSIONS=(0.10 0.12 4 6 8 10 12 14 16 18)
+DEFAULT_VERSIONS=(10 12 14 16 18 20 22 24 26)
 VERSIONS=()
 TEST_SCRIPT="test.js"
 IMAGE="docker.io/library/ubuntu:22.04"
@@ -30,13 +30,13 @@ Options:
   -h, --help               Show this help
 
 Without --node or --versions, the Node matrix matches build-test.yml:
-  0.10 0.12 4 6 8 10 12 14 16 18
+  10 12 14 16 18 20 22 24 26
 
 Examples:
   scripts/test-container-matrix.sh
   scripts/test-container-matrix.sh --node 18
   scripts/test-container-matrix.sh --versions 16,18 --script repro.js
-  scripts/test-container-matrix.sh --node 0.10 --platform linux/amd64
+  scripts/test-container-matrix.sh --node 10 --platform linux/amd64
 EOF
 }
 
