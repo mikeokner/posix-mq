@@ -4,6 +4,17 @@
   "author": "Michael Okner",
   "description": "A flexible Node.js binding for using POSIX message queues",
   "main": "./lib/index",
+  "files": [
+    "binding.gyp",
+    "lib/",
+    "src/"
+  ],
+  "scripts": {
+    "test": "node test/basic.js",
+    "test:worker": "node --expose-gc test/worker_threads.js",
+    "test:worker:node10": "node --experimental-worker --expose-gc test/worker_threads.js",
+    "test:all": "npm test && npm run test:worker"
+  },
   "engines": {
     "node": ">=10.0.0"
   },

@@ -44,4 +44,11 @@ jobs:
       - name: Build package
         run: npm install
       - name: Run test
-        run: node test.js
+        run: npm test
+      - name: Run worker thread tests
+        run: |
+          if [[ "${{ matrix.node-version }}" == "10" ]]; then
+            npm run test:worker:node10
+          else
+            npm run test:worker
+          fi

@@ -1,18 +1,20 @@
-//var PosixMQ = require('posix-mq');
-const PosixMQ = require('./lib/index');
+const PosixMQ = require('../lib/index');
 const Buffer = require('safer-buffer').Buffer;
 
+const queueName = '/pmqtest-' + process.pid;
+
 // Open the queue, fill it up, and close it
-var mq = new PosixMQ();
+let mq = new PosixMQ();
 mq.open({
-    name: '/pmqtest',
+    name: queueName,
     create: true,
+    exclusive: true,
     mode: '0777',
     maxmsgs: 10,
     msgsize: 8
 });
-var writebuf = Buffer.alloc(1);
-var r;
+const writebuf = Buffer.alloc(1);
+let r;
 
 // Fill up the queue
 do {
@@ -23,15 +25,16 @@ mq.close();
 
 // Open an existing queue, read messages, and then remove & close.
 mq = new PosixMQ();
+let readbuf;
 mq.on('messages', function() {
-    var n;
+    let n;
     while ((n = this.shift(readbuf)) !== false) {
-        var msg = readbuf.toString('utf8', 0, n);
+        const msg = readbuf.toString('utf8', 0, n);
         console.log("Received message ("+ n +" bytes): "+ msg);
         console.log("Messages left: "+ this.curmsgs);
     }
     this.unlink();
     this.close();
 });
-mq.open({name: '/pmqtest'});
+mq.open({name: queueName});
 readbuf = Buffer.alloc(mq.msgsize);

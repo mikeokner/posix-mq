@@ -25,6 +25,14 @@ passed to `mq_open()`. Subsequently re-written to use
 $ npm install posix-mq
 ```
 
+## Worker Threads
+
+The addon supports Node.js
+[`worker_threads`](https://nodejs.org/api/worker_threads.html). It may be loaded
+in the main thread and in multiple workers at the same time. Each `PosixMQ`
+instance belongs to the thread where it was created and should not be passed to
+another thread.
+
 
 ## Examples
 
@@ -70,7 +78,7 @@ readbuf = Buffer.alloc(mq.msgsize);
 * Open an existing queue and continuously listen for new messages:
 
 ```javascript
-const PosixMQ = require('./lib/index');
+const PosixMQ = require('posix-mq');
 const mq = new PosixMQ();
 
 // Open the queue and allocate the buffer to read messages into

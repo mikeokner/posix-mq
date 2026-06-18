@@ -1,5 +1,8 @@
 build
+*.tgz
 *.swp
 *.log
+.DS_Store
 node_modules
+.npm
 .vagrant

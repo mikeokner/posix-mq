@@ -169,9 +169,13 @@ public:
     {
         /* Cleanup and call mq_close() */
         int r = 0;
+        if (mqpollhandle) {
+            uv_poll_t* poll_handle = mqpollhandle;
+            mqpollhandle = NULL;
+            uv_poll_stop(poll_handle);
+            uv_close(reinterpret_cast<uv_handle_t*>(poll_handle), on_close);
+        }
         if (mqueue != MQDES_INVALID) {
-            uv_poll_stop(mqpollhandle);
-            uv_close(reinterpret_cast<uv_handle_t*>(mqpollhandle), on_close);
             r = mq_close(mqueue);
             mqueue = MQDES_INVALID;
         }
@@ -221,9 +225,7 @@ public:
 
     static void on_close(uv_handle_t* handle)
     {
-        PosixMQ* obj = static_cast<PosixMQ*>(handle->data);
-        delete obj->mqpollhandle;
-        obj->mqpollhandle = NULL;
+        delete reinterpret_cast<uv_poll_t*>(handle);
     }
 
     static void poll_cb(uv_poll_t* handle, int status, int events)
@@ -511,18 +513,32 @@ public:
         obj->mqname = strdup(name.c_str());
         obj->canread = !(obj->mqattrs.mq_curmsgs > 0);
         obj->canwrite = !(obj->mqattrs.mq_curmsgs < obj->mqattrs.mq_maxmsg);
-        if (!obj->mqpollhandle) {
-            obj->mqpollhandle = new uv_poll_t;
+        uv_loop_t* loop;
+        if (!CheckNapi(env, napi_get_uv_event_loop(env, &loop))) {
+            obj->close();
+            return NULL;
         }
+
+        obj->mqpollhandle = new uv_poll_t;
         obj->mqpollhandle->data = obj;
         obj->eventmask = UV_READABLE | UV_WRITABLE;
 
-        uv_loop_t* loop;
-        if (!CheckNapi(env, napi_get_uv_event_loop(env, &loop))) {
+        int uv_status =
+            uv_poll_init(loop, obj->mqpollhandle, MQDES_TO_FD(obj->mqueue));
+        if (uv_status < 0) {
+            delete obj->mqpollhandle;
+            obj->mqpollhandle = NULL;
+            obj->close();
+            napi_throw_error(env, NULL, uv_strerror(uv_status));
             return NULL;
         }
-        uv_poll_init(loop, obj->mqpollhandle, MQDES_TO_FD(obj->mqueue));
-        uv_poll_start(obj->mqpollhandle, obj->eventmask, poll_cb);
+
+        uv_status = uv_poll_start(obj->mqpollhandle, obj->eventmask, poll_cb);
+        if (uv_status < 0) {
+            obj->close();
+            napi_throw_error(env, NULL, uv_strerror(uv_status));
+            return NULL;
+        }
 
         return Undefined(env);
     }

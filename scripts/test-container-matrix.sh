@@ -7,7 +7,7 @@ REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd -P)
 
 DEFAULT_VERSIONS=(10 12 14 16 18 20 22 24 26)
 VERSIONS=()
-TEST_SCRIPT="test.js"
+TEST_SCRIPT="test/basic.js"
 IMAGE="docker.io/library/ubuntu:22.04"
 PLATFORM=""
 TIMEOUT_SECONDS=30
@@ -23,7 +23,7 @@ Options:
   -n, --node VERSION       Test one Node version; may be repeated
   -v, --versions LIST      Test comma- or space-separated Node versions
   -s, --script PATH        JavaScript test path relative to the repository
-                           (default: test.js)
+                           (default: test/basic.js)
       --image IMAGE        Ubuntu image (default: ubuntu:22.04)
       --platform PLATFORM  Container platform, e.g. linux/amd64
       --timeout SECONDS    Per-test timeout after build (default: 30)
@@ -35,7 +35,7 @@ Without --node or --versions, the Node matrix matches build-test.yml:
 Examples:
   scripts/test-container-matrix.sh
   scripts/test-container-matrix.sh --node 18
-  scripts/test-container-matrix.sh --versions 16,18 --script repro.js
+  scripts/test-container-matrix.sh --versions 16,18 --script test/basic.js
   scripts/test-container-matrix.sh --node 10 --platform linux/amd64
 EOF
 }
