@@ -12,7 +12,6 @@
   "scripts": {
     "test": "node test/basic.js",
     "test:worker": "node --expose-gc test/worker_threads.js",
-    "test:worker:node10": "node --experimental-worker --expose-gc test/worker_threads.js",
     "test:all": "npm test && npm run test:worker"
   },
   "engines": {

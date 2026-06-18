@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         node-version:
           - '10'
@@ -46,9 +47,6 @@ jobs:
       - name: Run test
         run: npm test
       - name: Run worker thread tests
+        if: matrix.node-version != '10'
         run: |
-          if [[ "${{ matrix.node-version }}" == "10" ]]; then
-            npm run test:worker:node10
-          else
-            npm run test:worker
-          fi
+          npm run test:worker

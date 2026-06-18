@@ -29,9 +29,9 @@ $ npm install posix-mq
 
 The addon supports Node.js
 [`worker_threads`](https://nodejs.org/api/worker_threads.html). It may be loaded
-in the main thread and in multiple workers at the same time. Each `PosixMQ`
-instance belongs to the thread where it was created and should not be passed to
-another thread.
+in the main thread and in multiple workers at the same time on Node.js versions
+with stable worker thread support. Each `PosixMQ` instance belongs to the thread
+where it was created and should not be passed to another thread.
 
 
 ## Examples
